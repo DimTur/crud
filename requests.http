@@ -1,0 +1,39 @@
+POST http://localhost:8000/sign_in HTTP/1.1
+content-type: application/json
+
+{
+    "login": "first",
+    "password": "first"
+}
+
+
+###
+
+// Get all menus
+GET http://localhost:8080/get_all HTTP/1.1
+content-type: application/json
+
+###
+
+// Get 1 menu by id
+GET http://localhost:8080/get?id=7348e1cf-637f-4067-a8db-784bde6394ee HTTP/1.1
+content-type: application/json
+# authorization: d37a11d6f89bf99b904aebebd5e5241921232f297a57a5a743894a0e4a801fc3
+authorization: 5559e13d6ae1473369537c636a01686f8b04d5e3775d298e78455efc5ca404d5
+
+###
+
+POST http://localhost:8080 HTTP/1.1
+content-type: application/json
+authorization: 5559e13d6ae1473369537c636a01686f8b04d5e3775d298e78455efc5ca404d5
+
+{
+    "ingredients": [
+        {
+            "amount": 2,
+            "type": "tomato"
+        }
+    ],
+    "temperature": 30,
+    "name": "pasta tomato"
+}
