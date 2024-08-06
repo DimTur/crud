@@ -3,6 +3,7 @@ package service
 import (
 	"crud/internal/domain"
 	"crud/internal/repository/recipedb"
+
 	"github.com/google/uuid"
 )
 
@@ -14,6 +15,10 @@ func Init(DB recipedb.DB) {
 
 func Get(id string) (*domain.Recipe, error) {
 	return recipes.Get(id)
+}
+
+func GetAll() ([]*domain.Recipe, error) {
+	return recipes.GetAll()
 }
 
 func Delete(id string) error {

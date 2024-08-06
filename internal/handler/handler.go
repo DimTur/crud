@@ -5,9 +5,27 @@ import (
 	"crud/internal/pkg/authclient"
 	"crud/internal/service"
 	"encoding/json"
-	"github.com/valyala/fasthttp"
 	"log"
+
+	"github.com/valyala/fasthttp"
 )
+
+type RequestHandler func(*fasthttp.RequestCtx)
+
+var routeHandlers = map[string]map[string]RequestHandler{
+	"/get": {
+		fasthttp.MethodGet: GetHandler,
+	},
+	"/get_all": {
+		fasthttp.MethodGet: GetAllHandler,
+	},
+	"/delete": {
+		fasthttp.MethodDelete: DeleteHandler,
+	},
+	"/post": {
+		fasthttp.MethodPost: PostHandler,
+	},
+}
 
 func ServerHandler(ctx *fasthttp.RequestCtx) {
 
@@ -22,22 +40,27 @@ func ServerHandler(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	token := ctx.Request.Header.Peek(fasthttp.HeaderAuthorization)
-	log.Println(string(token) == "", !authclient.ValidateToken(string(token)), string(token) == "" || !authclient.ValidateToken(string(token)))
-	if string(token) == "" || !authclient.ValidateToken(string(token)) {
-		ctx.SetStatusCode(fasthttp.StatusUnauthorized)
-		log.Println("Get request", string(ctx.Method()), string(token), "error", fasthttp.StatusUnauthorized)
-		return
+	path := string(ctx.Path())
+	method := string(ctx.Method())
+
+	if path != "/get_all" {
+		token := ctx.Request.Header.Peek(fasthttp.HeaderAuthorization)
+		log.Println(string(token) == "", !authclient.ValidateToken(string(token)), string(token) == "" || !authclient.ValidateToken(string(token)))
+		if string(token) == "" || !authclient.ValidateToken(string(token)) {
+			ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+			log.Println("Get request", string(ctx.Method()), string(token), "error", fasthttp.StatusUnauthorized)
+			return
+		}
 	}
 
-	switch {
-	case ctx.IsGet():
-		GetHandler(ctx)
-	case ctx.IsDelete():
-		DeleteHandler(ctx)
-	case ctx.IsPost():
-		PostHandler(ctx)
+	if methodHandlers, ok := routeHandlers[path]; ok {
+		if handler, ok := methodHandlers[method]; ok {
+			handler(ctx)
+			return
+		}
 	}
+
+	ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
 
 }
 
@@ -55,6 +78,27 @@ func GetHandler(ctx *fasthttp.RequestCtx) {
 	}
 
 	marshal, err := json.Marshal(rec)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if _, err = ctx.Write(marshal); err != nil {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		return
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusOK)
+}
+
+func GetAllHandler(ctx *fasthttp.RequestCtx) {
+	recipes, err := service.GetAll()
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
+	}
+
+	marshal, err := json.Marshal(recipes)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return

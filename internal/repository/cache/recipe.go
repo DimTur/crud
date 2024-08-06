@@ -57,3 +57,25 @@ func (c *RecipeCache) Delete(id string) error {
 
 	return nil
 }
+
+type RecipeEntry struct {
+	ID     string
+	Recipe *domain.Recipe
+}
+
+func (c *RecipeCache) GetAll() ([]*domain.Recipe, error) {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	if len(c.pool) == 0 {
+		return nil, errors.New("no recipes")
+	}
+
+	recipes := make([]*domain.Recipe, 0, len(c.pool))
+
+	for _, recipe := range c.pool {
+		recipes = append(recipes, recipe)
+	}
+
+	return recipes, nil
+}
