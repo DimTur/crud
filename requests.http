@@ -6,34 +6,70 @@ content-type: application/json
     "password": "first"
 }
 
+###
+
+// Needs to check user full user info
+GET http://localhost:8000/v2/get_user_info
+    ?user_id=66a0a8ecd7e0e27b089ad983 HTTP/1.1
+content-type: application/json
+authorization: d37a11d6f89bf99b904aebebd5e5241921232f297a57a5a743894a0e4a801fc3
+
+###
+
+// Needs to check user short user info
+GET http://localhost:8000/get_service_user_info HTTP/1.1
+content-type: application/json
+authorization: 5559e13d6ae1473369537c636a01686f8b04d5e3775d298e78455efc5ca404d5
+X-Service-Key: asdWQEfsdmkfmsdlgeruitEEFW12345!fwemofgwerg
+
+###
+
+// Change role for user
+GET http://localhost:8000/admin/change_role HTTP/1.1
+content-type: application/json
+authorization: d37a11d6f89bf99b904aebebd5e5241921232f297a57a5a743894a0e4a801fc3
+
+{
+    "id": "66a0a8ecd7e0e27b089ad983",
+    "role": "admin"
+}
 
 ###
 
 // Get all menus
-GET http://localhost:8080/get_all HTTP/1.1
+GET http://localhost:8080/get_all?page=4&limit=2&sort_by=name HTTP/1.1
 content-type: application/json
 
 ###
 
 // Get 1 menu by id
-GET http://localhost:8080/get?id=7348e1cf-637f-4067-a8db-784bde6394ee HTTP/1.1
+GET http://localhost:8080/get?id=397ab4d4-c98a-474b-9e91-edb699039e65 HTTP/1.1
 content-type: application/json
 # authorization: d37a11d6f89bf99b904aebebd5e5241921232f297a57a5a743894a0e4a801fc3
 authorization: 5559e13d6ae1473369537c636a01686f8b04d5e3775d298e78455efc5ca404d5
 
 ###
 
-POST http://localhost:8080 HTTP/1.1
+// Delete 1 menu by id
+DELETE http://localhost:8080/delete?id=562a446c-1f89-4a96-867d-923b575210f8 HTTP/1.1
 content-type: application/json
+# authorization: d37a11d6f89bf99b904aebebd5e5241921232f297a57a5a743894a0e4a801fc3
 authorization: 5559e13d6ae1473369537c636a01686f8b04d5e3775d298e78455efc5ca404d5
+
+###
+
+POST http://localhost:8080/post HTTP/1.1
+content-type: application/json
+authorization: d37a11d6f89bf99b904aebebd5e5241921232f297a57a5a743894a0e4a801fc3
+# authorization: 5559e13d6ae1473369537c636a01686f8b04d5e3775d298e78455efc5ca404d5
 
 {
     "ingredients": [
         {
-            "amount": 2,
-            "type": "tomato"
+            "amount": 10,
+            "type": "apple"
         }
     ],
-    "temperature": 30,
-    "name": "pasta tomato"
+    "temperature": 180,
+    "name": "new test"
 }

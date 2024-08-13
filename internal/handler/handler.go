@@ -6,6 +6,7 @@ import (
 	"crud/internal/service"
 	"encoding/json"
 	"log"
+	"strconv"
 
 	"github.com/valyala/fasthttp"
 )
@@ -45,12 +46,21 @@ func ServerHandler(ctx *fasthttp.RequestCtx) {
 
 	if path != "/get_all" {
 		token := ctx.Request.Header.Peek(fasthttp.HeaderAuthorization)
-		log.Println(string(token) == "", !authclient.ValidateToken(string(token)), string(token) == "" || !authclient.ValidateToken(string(token)))
-		if string(token) == "" || !authclient.ValidateToken(string(token)) {
+		if token == nil || string(token) == "" {
 			ctx.SetStatusCode(fasthttp.StatusUnauthorized)
-			log.Println("Get request", string(ctx.Method()), string(token), "error", fasthttp.StatusUnauthorized)
+			log.Println("No token provided")
 			return
 		}
+
+		userInfo, valid := authclient.GetUserByToken(string(token))
+		if !valid {
+			ctx.SetStatusCode(fasthttp.StatusUnauthorized)
+			log.Println("Invalid token")
+			return
+		}
+
+		ctx.Request.Header.Set("X-User-ID", userInfo.ID)
+		ctx.Request.Header.Set("X-User-Role", userInfo.Role)
 	}
 
 	if methodHandlers, ok := routeHandlers[path]; ok {
@@ -92,9 +102,39 @@ func GetHandler(ctx *fasthttp.RequestCtx) {
 }
 
 func GetAllHandler(ctx *fasthttp.RequestCtx) {
-	recipes, err := service.GetAll()
+	pageStr := string(ctx.QueryArgs().Peek("page"))
+	limitStr := string(ctx.QueryArgs().Peek("limit"))
+	sortByArg := string(ctx.QueryArgs().Peek("sort_by"))
+
+	page := 1
+	limit := 2
+	sortBy := "name"
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+	if sortByArg != "name" {
+		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+	}
+
+	if limit > 2 {
+		limit = 2
+	}
+
+	recipes, err := service.GetAll(page, limit, sortBy)
 	if err != nil {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		if err.Error() == "page out of range" {
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
+		} else {
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -119,6 +159,33 @@ func DeleteHandler(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	userID := string(ctx.Request.Header.Peek("X-User-ID"))
+	userRole := string(ctx.Request.Header.Peek("X-User-Role"))
+
+	if userID == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		ctx.SetBodyString("X-User-ID is required in headers")
+		return
+	}
+
+	if userRole == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		ctx.SetBodyString("X-User-Role is required in headers")
+		return
+	}
+
+	rec, err := service.Get(string(id))
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
+	}
+
+	if rec.AuthorID != userID && userRole != "admin" {
+		ctx.SetStatusCode(fasthttp.StatusForbidden)
+		ctx.SetBodyString("You don't have permission to delete this recipe")
+		return
+	}
+
 	if err := service.Delete(string(id)); err != nil {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		return
@@ -128,12 +195,30 @@ func DeleteHandler(ctx *fasthttp.RequestCtx) {
 }
 
 func PostHandler(ctx *fasthttp.RequestCtx) {
-	var rec domain.Recipe
-	log.Println(string(ctx.PostBody()))
-	if err := json.Unmarshal(ctx.PostBody(), &rec); err != nil {
+	var input RecipeReq
+
+	if err := json.Unmarshal(ctx.PostBody(), &input); err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
+
+	userID := string(ctx.Request.Header.Peek("X-User-ID"))
+	if userID == "" {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		ctx.SetBodyString("X-User-ID is required in headers")
+		return
+	}
+
+	input.AuthorID = userID
+
+	rec := domain.Recipe{
+		ID:          input.ID,
+		AuthorID:    input.AuthorID,
+		Name:        input.Name,
+		Ingredients: input.Ingredients,
+		Temperature: input.Temperature,
+	}
+
 	if err := service.AddOrUpd(&rec); err != nil {
 		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		return

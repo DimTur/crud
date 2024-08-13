@@ -4,6 +4,7 @@ import (
 	"context"
 	"crud/internal/domain"
 	"errors"
+	"sort"
 	"sync"
 )
 
@@ -63,7 +64,10 @@ type RecipeEntry struct {
 	Recipe *domain.Recipe
 }
 
-func (c *RecipeCache) GetAll() ([]*domain.Recipe, error) {
+// Becouse we using cache I use page and limit: all data in memory.
+// If we use SQL we need to use limit and offset.
+// Pagination is best done from the database level.
+func (c *RecipeCache) GetAll(page, limit int, sortBy string) ([]*domain.Recipe, error) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
@@ -72,10 +76,25 @@ func (c *RecipeCache) GetAll() ([]*domain.Recipe, error) {
 	}
 
 	recipes := make([]*domain.Recipe, 0, len(c.pool))
-
 	for _, recipe := range c.pool {
 		recipes = append(recipes, recipe)
 	}
 
-	return recipes, nil
+	if sortBy == "name" {
+		sort.Slice(recipes, func(i, j int) bool {
+			return recipes[i].Name < recipes[j].Name
+		})
+	}
+
+	startIdx := (page - 1) * limit
+	endIdx := startIdx + limit
+
+	if startIdx >= len(recipes) {
+		return nil, errors.New("page out of range")
+	}
+	if endIdx > len(recipes) {
+		endIdx = len(recipes)
+	}
+
+	return recipes[startIdx:endIdx], nil
 }

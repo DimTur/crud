@@ -17,8 +17,8 @@ func Get(id string) (*domain.Recipe, error) {
 	return recipes.Get(id)
 }
 
-func GetAll() ([]*domain.Recipe, error) {
-	return recipes.GetAll()
+func GetAll(page, limit int, sortBy string) ([]*domain.Recipe, error) {
+	return recipes.GetAll(page, limit, sortBy)
 }
 
 func Delete(id string) error {
