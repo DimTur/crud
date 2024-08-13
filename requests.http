@@ -37,7 +37,7 @@ authorization: d37a11d6f89bf99b904aebebd5e5241921232f297a57a5a743894a0e4a801fc3
 ###
 
 // Get all menus
-GET http://localhost:8080/get_all?page=4&limit=2&sort_by=name HTTP/1.1
+GET http://localhost:8080/get_all?page=1&limit=2&sort_by=name HTTP/1.1
 content-type: application/json
 
 ###

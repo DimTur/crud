@@ -13,6 +13,11 @@ type RecipeCache struct {
 	mtx  sync.RWMutex
 }
 
+type PaginatedResponse struct {
+	Recipes []*domain.Recipe `json:"recipes"`
+	Total   int              `json:"total"`
+}
+
 const RecipeDumpFileName = "recipes.json"
 
 func RecipeCacheInit(ctx context.Context, wg *sync.WaitGroup) (*RecipeCache, error) {
@@ -59,15 +64,10 @@ func (c *RecipeCache) Delete(id string) error {
 	return nil
 }
 
-type RecipeEntry struct {
-	ID     string
-	Recipe *domain.Recipe
-}
-
 // Becouse we using cache I use page and limit: all data in memory.
 // If we use SQL we need to use limit and offset.
 // Pagination is best done from the database level.
-func (c *RecipeCache) GetAll(page, limit int, sortBy string) ([]*domain.Recipe, error) {
+func (c *RecipeCache) GetAll(page, limit int, sortBy string) (*PaginatedResponse, error) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
 
@@ -96,5 +96,8 @@ func (c *RecipeCache) GetAll(page, limit int, sortBy string) ([]*domain.Recipe, 
 		endIdx = len(recipes)
 	}
 
-	return recipes[startIdx:endIdx], nil
+	return &PaginatedResponse{
+		Recipes: recipes[startIdx:endIdx],
+		Total:   len(recipes),
+	}, nil
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"crud/internal/domain"
+	"crud/internal/repository/cache"
 	"crud/internal/repository/recipedb"
 
 	"github.com/google/uuid"
@@ -17,7 +18,7 @@ func Get(id string) (*domain.Recipe, error) {
 	return recipes.Get(id)
 }
 
-func GetAll(page, limit int, sortBy string) ([]*domain.Recipe, error) {
+func GetAll(page, limit int, sortBy string) (*cache.PaginatedResponse, error) {
 	return recipes.GetAll(page, limit, sortBy)
 }
 
